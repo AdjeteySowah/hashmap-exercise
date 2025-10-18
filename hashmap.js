@@ -1,8 +1,35 @@
-function createHashMap() {
+export function createHashMap() {
   let loadFactor = 0.75;
   let capacity = 16;
   let buckets = new Array(capacity).fill(null);
   let storedKeys = 0;
+  let keyHashCodes = {};
+
+
+  function setLoadFactor(lf) {
+    if (typeof lf !== "number" || lf <= 0 || lf >= 1) {
+      throw new Error("loadFactor must be between 0 and 1 (exclusive)");
+    }
+    loadFactor = lf;
+  }
+
+  function resize() {
+    let size = storedKeys;
+    if (size / capacity > loadFactor) {
+      capacity *= 2;
+      let newBuckets = new Array(capacity).fill(null);
+      buckets.forEach((bucket, idx) => {
+        if (bucket) {
+          newBuckets[idx] = bucket;
+        }
+      });
+      buckets = newBuckets;
+    }
+  }
+
+  function displayBuckets() {
+    return buckets;
+  }
 
   function traverse(callback, head) {
     let current = head;
@@ -16,10 +43,6 @@ function createHashMap() {
     return undefined;
   }
 
-  function displayBuckets() {
-    return buckets;
-  }
-
   function hash(key) {
     if (key === null || key === undefined) key = '';
     let str = String(key);
@@ -27,11 +50,18 @@ function createHashMap() {
     str = str.toLowerCase();
 
     let hashCode = 0;
-    const primeNumber = 31;
-    for (const cha of str) {
-      hashCode = (primeNumber * hashCode + cha.codePointAt(0)) % capacity;
+
+    if (Object.hasOwn(keyHashCodes, str)) {
+      hashCode = keyHashCodes[str];
+    } else {
+      const primeNumber = 31;
+      for (const cha of str) {
+        hashCode = (primeNumber * hashCode + cha.codePointAt(0)) % capacity;
+      }
+      keyHashCodes[str] = hashCode;
     }
-    return hashCode;
+
+    return hashCode;      
   }
 
   function set(key, value) {
@@ -57,6 +87,8 @@ function createHashMap() {
       buckets[hashCode] = bucket;
       storedKeys += 1;
     }
+
+    resize();
     return bucket;
   }
 
@@ -84,7 +116,7 @@ function createHashMap() {
       return true;
     } else if (head && head.next !== null) {
       const hasKey = traverse((node) => {
-        return node.key === key ? true : undefined;
+        return node.key === key ? true : false;
       }, head);
       return hasKey;
     } else {
@@ -185,7 +217,9 @@ function createHashMap() {
   }
 
   return {
+    setLoadFactor,
     displayBuckets,
+
     set,
     get,
     has,
